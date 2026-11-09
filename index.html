@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ElecPad</title>
+    <style>
+        :root {
+            --vscode-bg: #1e1e1e;
+            --vscode-sidebar-bg: #252526;
+            --vscode-statusbar-bg: #007acc;
+            --vscode-text: #d4d4d4;
+            --vscode-accent: #0e639c;
+            --vscode-border: #333333;
+            --vscode-gutter: #858585;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--vscode-bg);
+            color: var(--vscode-text);
+            overflow: hidden;
+        }
+
+        /* ★ 指定のタイトルバースタイル */
+        #title-bar {
+            height: 32px;
+            background: #3c3c3c;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 0 0 12px;
+            border-bottom: 1px solid #2b2b2b;
+            -webkit-app-region: drag;
+            user-select: none;
+            font-size: 12px;
+            color: #d4d4d4;
+        }
+
+        #title-text {
+            font-size: 12px;
+            color: #d4d4d4;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #window-controls {
+            display: flex;
+            height: 100%;
+            -webkit-app-region: no-drag;
+        }
+
+        .win-btn {
+            width: 46px;
+            height: 100%;
+            border: none;
+            background: transparent;
+            color: #d4d4d4;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.15s ease;
+            font-family: "Segoe UI Symbol", "Arial Unicode MS", sans-serif;
+        }
+
+        .win-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        #close-btn:hover {
+            background: #e81123;
+            color: #fff;
+        }
+
+        /* ヘッダーツールバー */
+        #app-bar {
+            height: 36px;
+            background: var(--vscode-sidebar-bg);
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            gap: 10px;
+            border-bottom: 1px solid var(--vscode-border);
+        }
+        .icon-button {
+            background: transparent; border: none; width: 28px; height: 28px;
+            border-radius: 4px; color: var(--vscode-text); display: flex;
+            justify-content: center; align-items: center; cursor: pointer;
+            font-size: 14px; transition: background 0.15s; -webkit-app-region: no-drag;
+        }
+        .icon-button:hover { background: rgba(255, 255, 255, 0.1); }
+        .app-title { font-size: 13px; color: #cccccc; }
+
+        /* メインコンテナ */
+        .main-container { flex: 1; display: flex; position: relative; overflow: hidden; }
+
+        /* ナビゲーションドロワー */
+        #nav-drawer {
+            position: absolute; top: 0; left: -260px; width: 260px; height: 100%;
+            background: var(--vscode-sidebar-bg); box-shadow: 4px 0 12px rgba(0,0,0,0.5);
+            transition: left 0.2s ease-out; z-index: 100; display: flex;
+            flex-direction: column; padding: 10px; box-sizing: border-box;
+            border-right: 1px solid var(--vscode-border);
+        }
+        #nav-drawer.open { left: 0; }
+        .drawer-header {
+            font-size: 11px; font-weight: 600; color: #808080;
+            text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 12px;
+        }
+        .drawer-item {
+            display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+            border-radius: 4px; background: transparent; border: none;
+            color: var(--vscode-text); font-size: 13px; cursor: pointer;
+            text-align: left; width: 100%; transition: background 0.15s;
+        }
+        .drawer-item:hover { background: var(--vscode-accent); color: #ffffff; }
+
+        #overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); display: none; z-index: 90;
+        }
+        #overlay.active { display: block; }
+
+        /* エディタエリア */
+        .editor-wrapper {
+            flex: 1; display: flex; position: relative; background: var(--vscode-bg);
+            overflow: hidden;
+        }
+        #line-numbers {
+            width: 45px; padding: 14px 0; background: var(--vscode-bg);
+            color: var(--vscode-gutter); font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px; line-height: 1.5; text-align: right; padding-right: 10px;
+            user-select: none; box-sizing: border-box; border-right: 1px solid rgba(255,255,255,0.05);
+            overflow: hidden;
+        }
+        #editor {
+            flex: 1; padding: 14px 12px; box-sizing: border-box;
+            background: transparent; color: var(--vscode-text); border: none;
+            resize: none; font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px; line-height: 1.5; outline: none; tab-size: 4;
+            white-space: pre; overflow-x: auto;
+        }
+        #editor::placeholder { color: #555555; }
+
+        /* ステータスバー */
+        #status-bar {
+            height: 22px; background: var(--vscode-statusbar-bg); color: #ffffff;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 10px; font-size: 12px; user-select: none;
+        }
+        .status-section { display: flex; gap: 15px; }
+    </style>
+</head>
+<body>
+    <!-- タイトルバー -->
+    <div id="title-bar">
+        <span id="title-text">untitled.txt - ElecPad</span>
+        <div id="window-controls">
+            <button class="win-btn" id="min-btn">ー</button>
+            <button class="win-btn" id="max-btn">❐</button>
+            <button class="win-btn" id="close-btn">×</button>
+        </div>
+    </div>
+
+    <!-- アプリバー -->
+    <div id="app-bar">
+        <button class="icon-button" id="menu-btn">☰</button>
+        <span class="app-title" id="file-label">untitled.txt</span>
+    </div>
+
+    <!-- メイン領域 -->
+    <div class="main-container">
+        <!-- ドロワー -->
+        <div id="nav-drawer">
+            <div class="drawer-header">ElecPad Menu</div>
+            <button class="drawer-item" id="new-btn"><span>📄</span> New File</button>
+            <button class="drawer-item" id="open-btn"><span>📁</span> Open File... (Ctrl+O)</button>
+            <button class="drawer-item" id="save-btn"><span>💾</span> Save (Ctrl+S)</button>
+        </div>
+        <div id="overlay"></div>
+
+        <!-- エディタ本体 -->
+        <div class="editor-wrapper">
+            <div id="line-numbers">1</div>
+            <textarea id="editor" placeholder="// ElecPadへようこそ！ここにコードやメモを入力..." spellcheck="false"></textarea>
+        </div>
+    </div>
+
+    <!-- ステータスバー -->
+    <div id="status-bar">
+        <div class="status-section">
+            <span id="cursor-pos">Ln 1, Col 1</span>
+        </div>
+        <div class="status-section">
+            <span id="char-count">0 chars</span>
+            <span>UTF-8</span>
+            <span>Plain Text</span>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        const editor = document.getElementById('editor');
+        const lineNumbers = document.getElementById('line-numbers');
+        const menuBtn = document.getElementById('menu-btn');
+        const navDrawer = document.getElementById('nav-drawer');
+        const overlay = document.getElementById('overlay');
+        const fileLabel = document.getElementById('file-label');
+        const titleText = document.getElementById('title-text');
+        const cursorPos = document.getElementById('cursor-pos');
+        const charCount = document.getElementById('char-count');
+
+        let currentFilePath = null;
+        let isModified = false;
+
+        // ウィンドウ制御
+        document.getElementById('min-btn').addEventListener('click', () => ipcRenderer.send('window-minimize'));
+        document.getElementById('max-btn').addEventListener('click', () => ipcRenderer.send('window-maximize'));
+        document.getElementById('close-btn').addEventListener('click', () => ipcRenderer.send('window-close'));
+
+        function toggleMenu() {
+            navDrawer.classList.toggle('open');
+            overlay.classList.toggle('active');
+        }
+        menuBtn.addEventListener('click', toggleMenu);
+        overlay.addEventListener('click', toggleMenu);
+
+        // 行番号とスクロールの同期＆更新
+        function updateEditorInfo() {
+            const lines = editor.value.split('\n');
+            lineNumbers.innerHTML = lines.map((_, i) => i + 1).join('<br>');
+            
+            charCount.textContent = `${editor.value.length} chars`;
+
+            const selStart = editor.selectionStart;
+            const textLines = editor.value.substr(0, selStart).split('\n');
+            const currentLine = textLines.length;
+            const currentCol = textLines[textLines.length - 1].length + 1;
+            cursorPos.textContent = `Ln ${currentLine}, Col ${currentCol}`;
+        }
+
+        editor.addEventListener('input', () => {
+            if (!isModified) {
+                isModified = true;
+                updateTitle();
+            }
+            updateEditorInfo();
+        });
+
+        editor.addEventListener('scroll', () => {
+            lineNumbers.scrollTop = editor.scrollTop;
+        });
+
+        ['click', 'keyup'].forEach(evt => editor.addEventListener(evt, updateEditorInfo));
+
+        function updateTitle() {
+            const fileName = currentFilePath ? currentFilePath.split('/').pop() : 'untitled.txt';
+            const modStr = isModified ? '● ' : '';
+            fileLabel.textContent = `${modStr}${fileName}`;
+            titleText.textContent = `${modStr}${fileName} - ElecPad`;
+        }
+
+        // Keybindings
+        editor.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = editor.selectionStart;
+                const end = editor.selectionEnd;
+                editor.value = editor.value.substring(0, start) + "    " + editor.value.substring(end);
+                editor.selectionStart = editor.selectionEnd = start + 4;
+                updateEditorInfo();
+            }
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                saveFile();
+            }
+            if (e.ctrlKey && e.key === 'o') {
+                e.preventDefault();
+                openFile();
+            }
+        });
+
+        // Actions
+        document.getElementById('new-btn').addEventListener('click', () => {
+            toggleMenu();
+            currentFilePath = null;
+            editor.value = '';
+            isModified = false;
+            updateTitle();
+            updateEditorInfo();
+        });
+
+        async function openFile() {
+            const res = await ipcRenderer.invoke('open-file');
+            if (res) {
+                currentFilePath = res.path;
+                editor.value = res.content;
+                isModified = false;
+                updateTitle();
+                updateEditorInfo();
+            }
+        }
+        document.getElementById('open-btn').addEventListener('click', () => {
+            toggleMenu();
+            openFile();
+        });
+
+        async function saveFile() {
+            const res = await ipcRenderer.invoke('save-file', {
+                filePath: currentFilePath,
+                text: editor.value
+            });
+            if (res.success) {
+                currentFilePath = res.path;
+                isModified = false;
+                updateTitle();
+            }
+        }
+        document.getElementById('save-btn').addEventListener('click', () => {
+            toggleMenu();
+            saveFile();
+        });
+
+        updateEditorInfo();
+    </script>
+</body>
+</html>

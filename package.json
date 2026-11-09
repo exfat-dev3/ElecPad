@@ -1,0 +1,12 @@
+{
+  "name": "electron-notepad",
+  "version": "1.0.0",
+  "description": "Simple Notepad with Electron",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}
