@@ -9,6 +9,9 @@
 </div>
 
 ---
+## クレジット / ライセンス
+- Linuxのロゴ（Tux）は [Larry Ewing](mailto:lewing@isc.tamu.edu) 氏によって制作され、GIMPを使用して作成されました。
+
 
 ## 🛠 特徴
 
